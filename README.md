@@ -47,6 +47,16 @@ inter-process communication. And then there's the garbage collection associated 
 In summary, we need a process to work in the smallest amount of memory while consuming the
 smallest amount of CPU, and at the same time, assume a single-core microprocessor.
 
+Protobuf vs text
+---
+
+The Prometheus exposition specification supports Protobuf as well as the more common text format. We decided that
+the text format appears to be more common and can be used from a wider number of clients, including shell scripting.
+It is also enough that we impose the use of a Unix Domain Socket stream instead of a TCP/HTTP one, so we do not
+wish to add further constraints.
+
+The Prometheus team also has some views on Protobuf vs text and [appear to prefer the text format](https://github.com/prometheus/OpenMetrics/blob/main/legacy/markdown/protobuf_vs_text.md).
+
 ## Contribution policy
 
 Contributions via GitHub pull requests are gladly accepted from their original author. Along with any pull requests, 
