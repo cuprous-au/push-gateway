@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "push-gateway"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license-file = "LICENSE"
+repository = "https://github.com/cuprous-au/push-gateway.git"
+homepage = "https://github.com/cuprous-au/push-gateway.git"
+
+[workspace.dependencies]
+
+[profile.release]
+codegen-units = 1 # better optimizations
+lto = true        # better optimizations
+opt-level = 'z'   # Optimize for size
+panic = "abort"   # No unwinding or helpful backtrace
+strip = true      # No debug symbols etc

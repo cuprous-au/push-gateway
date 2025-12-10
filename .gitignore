@@ -1,0 +1,10 @@
+# Rust/Cargo build artifacts
+target/
+**/*.rs.bk
+
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

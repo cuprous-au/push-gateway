@@ -1,0 +1,10 @@
+[package]
+name = "push-gateway"
+version.workspace = true
+edition.workspace = true
+license-file.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Push acceptor for caching the metrics of local processes"
+
+[dependencies]
