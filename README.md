@@ -3,18 +3,17 @@ push-gateway
 
 A [Rust-based](https://rust-lang.org/) push acceptor for caching the Prometheus metrics of local processes, 
 and then making them available for scraping downstream. A unix domain socket is  available for other processes 
-to stream out Prometheus metrics. Their keys are parsed by the push-gateway and retained in a cache, along with a
-Time To Live (TTL). An http endpoint providing a `/metrics` path is available on a configurable port 
+to stream out Prometheus metrics. Their keys are parsed by the push-gateway and retained in an LRU cache of a
+fixed size. An http endpoint providing a `/metrics` path is available on a configurable port 
 (`9091`) for downstream scraping.
 
-By incorporating a TTL on each metric key, if a local process is upgraded and no longer supplies that
-metric then it will naturally disappear. The TTL is one minute by default as it is conventional for
-metrics to be updated by other processes at least once within 15 seconds.
+By incorporating a fixed size cache for metrics, if a local process is upgraded and no longer supplies that
+metric then it will naturally disappear. 
 
 The push-gateway is functionally comparable with the [Prometheus Push Gateway](https://github.com/prometheus/pushgateway),
 but designed for embedded environments like those found in edge computing. The size of the cache is fixed to a
 command-line option. By default, the cache will not exceed 10KiB of memory, which enables around 100 labelled metrics to be stored. 
-The resident size of the push-gateway is not expected to exceed 2MiB for an ARM 64 bit target.
+The resident size of the push-gateway is not expected to exceed 5MiB for an ARM 64 bit target.
 
 With the embedded target in mind, you can also be sure that this push-gateway works extremely well anywhere
 and can be considered a replacement to the Prometheus Push Gateway. The impact of doing this means that the

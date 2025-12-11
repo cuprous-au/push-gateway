@@ -8,3 +8,14 @@ homepage.workspace = true
 description = "Push acceptor for caching the metrics of local processes"
 
 [dependencies]
+async-stream.workspace = true
+axum.workspace = true
+clap = { workspace = true, features = ["derive", "env"] }
+env_logger.workspace = true
+git-version.workspace = true
+humantime.workspace = true
+log.workspace = true
+moka = { workspace = true, features = ["sync"] }
+nom-openmetrics.workspace = true
+tokio = { workspace = true, features = ["full"] }
+tokio-stream.workspace = true
