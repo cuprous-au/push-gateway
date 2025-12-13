@@ -2,23 +2,24 @@ push-gateway
 ===
 
 A [Rust-based](https://rust-lang.org/) push acceptor for caching the Prometheus metrics of local processes, 
-and then making them available for scraping downstream. A unix domain socket is  available for other processes 
-to stream out Prometheus metrics. Their keys are parsed by the push-gateway and retained in an LRU cache of a
-fixed size. An http endpoint providing a `/metrics` path is available on a configurable port 
+and then making them available for scraping downstream. A unix domain socket is available for other processes 
+to stream out Prometheus metrics using HTTP. Their keys are parsed by the push-gateway and retained in an LRU cache of a
+fixed size. A TCP http endpoint providing a `/metrics` path is available on a configurable port 
 (`9091`) for downstream scraping.
 
 By incorporating a fixed size cache for metrics, if a local process is upgraded and no longer supplies that
 metric then it will naturally disappear. 
 
 The push-gateway is functionally comparable with the [Prometheus Push Gateway](https://github.com/prometheus/pushgateway),
-but designed for embedded environments like those found in edge computing. The size of the cache is fixed to a
-command-line option. By default, the cache will not exceed 10KiB of memory, which enables around 100 labelled metrics to be stored. 
-The resident size of the push-gateway is not expected to exceed 5MiB for an ARM 64 bit target.
+but designed for embedded environments like those found in edge computing. The HTTP commands and paths have been retained
+to ease any planned or future migration.
+
+The size of the cache is fixed to a command-line option. By default, the cache will not exceed 10KiB of memory, which enables around 100 labelled metrics to be stored. The resident size of the push-gateway is not expected to exceed 5MiB for an ARM 64 bit target.
 
 With the embedded target in mind, you can also be sure that this push-gateway works extremely well anywhere
 and can be considered a replacement to the Prometheus Push Gateway. The impact of doing this means that the
-processes wanting to push metrics must do so using a Unix Domain Socket instead of HTTP. However, [`socat`](https://man.freebsd.org/cgi/man.cgi?query=socat&sektion=1&manpath=FreeBSD+6.0-RELEASE+and+Ports)
-can be used to forward http request bodies on to a Unix Domain Socket as a migratory step.
+processes wanting to push metrics must do so using a Unix Domain Socket instead of TCP. However, [`socat`](https://man.freebsd.org/cgi/man.cgi?query=socat&sektion=1&manpath=FreeBSD+6.0-RELEASE+and+Ports)
+can be used to forward TCP requests on to a Unix Domain Socket as a migratory step.
 
 Motivation
 ---
@@ -39,19 +40,25 @@ some client connection based on their source IP address then you would not expec
 beyond the connection being dropped. Otherwise, system memory may well continue growing. Although,
 apparently, [being explicit about freeing unused metrics appears to be a thing](https://github.com/prometheus/client_rust/issues/197#issuecomment-3635523296)!
 
-Finally, Unix Domain Sockets are hard to beat in terms of performance when conveying data between
-processes. The Prometheus Push Gateway provides an HTTP endpoint instead, which is overkill for
+Finally, Unix Domain Sockets are superior in terms of performance when conveying data between
+processes. The Prometheus Push Gateway provides an TCP endpoint for pushing, which is overkill for
 inter-process communication. And then there's the garbage collection associated with Go...
 
 In summary, we need a process to work in the smallest amount of memory while consuming the
 smallest amount of CPU, and at the same time, assume a single-core microprocessor.
+
+Push path support
+---
+
+The path convention when pushing is as per https://github.com/prometheus/pushgateway?tab=readme-ov-file#url.
+However, note at this time there is no support for the use of the `@base64` in the path (pull requests are welcomed).
 
 Protobuf vs text
 ---
 
 The Prometheus exposition specification supports Protobuf as well as the more common text format. We decided that
 the text format appears to be more common and can be used from a wider number of clients, including shell scripting.
-It is also enough that we impose the use of a Unix Domain Socket stream instead of a TCP/HTTP one, so we do not
+It is also enough that we impose the use of a Unix Domain Socket/HTTP stream instead of a TCP/HTTP one, so we do not
 wish to add further constraints.
 
 The Prometheus team also has some views on Protobuf vs text and [appear to prefer the text format](https://github.com/prometheus/OpenMetrics/blob/main/legacy/markdown/protobuf_vs_text.md).
