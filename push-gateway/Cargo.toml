@@ -12,11 +12,14 @@ async-stream.workspace = true
 axum.workspace = true
 clap = { workspace = true, features = ["derive", "env"] }
 env_logger.workspace = true
+futures.workspace = true
 git-version.workspace = true
 humantime.workspace = true
 log.workspace = true
 moka = { workspace = true, features = ["sync"] }
+nom.workspace = true
 nom-openmetrics.workspace = true
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
-tokio-stream.workspace = true
+tokio-stream = { workspace = true, features = ["io-util"] }
+tokio-util = { workspace = true, features = ["io-util"] }

@@ -5,11 +5,14 @@ use std::{
 
 use axum::{
     Router,
+    body::Body,
     extract::{Path, State},
     http::StatusCode,
     routing::post,
 };
+use futures::StreamExt;
 use log::info;
+use nom_openmetrics::parser::family;
 use serde::Deserialize;
 
 use crate::metrics_cache::MetricsCache;
@@ -22,8 +25,9 @@ struct RouteState {
 async fn push_handler_with_job(
     State(state): State<RouteState>,
     Path(job): Path<String>,
+    body: Body,
 ) -> StatusCode {
-    push_handler(state, job, vec![]).await
+    push_handler(state, job, vec![], body).await
 }
 
 #[derive(Deserialize)]
@@ -35,6 +39,7 @@ struct JobWithLabels {
 async fn push_handler_with_job_and_labels(
     State(state): State<RouteState>,
     Path(path): Path<JobWithLabels>,
+    body: Body,
 ) -> StatusCode {
     let labels = path
         .labels
@@ -52,14 +57,41 @@ async fn push_handler_with_job_and_labels(
             },
         )
         .0;
-    push_handler(state, path.job, labels).await
+    push_handler(state, path.job, labels, body).await
 }
 
 async fn push_handler(
     _state: RouteState,
     _job: String,
     _labels: Vec<(String, String)>,
+    body: Body,
 ) -> StatusCode {
+    let mut stream_body = body.into_data_stream();
+
+    const DEFAULT_METRICS_FAMILY_CAPACITY: usize = 1024;
+    let mut buf = Vec::with_capacity(DEFAULT_METRICS_FAMILY_CAPACITY);
+    while let Some(Ok(bytes)) = stream_body.next().await {
+        buf.extend_from_slice(&bytes);
+
+        let Ok(text) = std::str::from_utf8(&buf) else {
+            continue;
+        };
+
+        match family(text) {
+            Ok((remaining, _metric_family)) => {
+                // TODO something goes here with metric_family
+
+                buf.drain(..buf.len() - remaining.len());
+            }
+            Err(nom::Err::Incomplete(_)) => {
+                continue;
+            }
+            Err(_e) => {
+                break;
+            }
+        }
+    }
+
     StatusCode::OK
 }
 
