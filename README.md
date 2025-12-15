@@ -21,6 +21,11 @@ and can be considered a replacement to the Prometheus Push Gateway. The impact o
 processes wanting to push metrics must do so using a Unix Domain Socket instead of TCP. However, [`socat`](https://man.freebsd.org/cgi/man.cgi?query=socat&sektion=1&manpath=FreeBSD+6.0-RELEASE+and+Ports)
 can be used to forward TCP requests on to a Unix Domain Socket as a migratory step.
 
+Building and running
+---
+
+Please see the [push-gateway](push-gateway/README.md) package documentation.
+
 Motivation
 ---
 Push gateways are a useful approach to collecting metrics from an unknown number of sources. Only
