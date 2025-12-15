@@ -13,22 +13,43 @@ use axum::{
     routing::get,
 };
 use log::info;
+use std::fmt::Write;
 use tokio_stream::Stream;
 
-use crate::metrics_cache::MetricsCache;
+use crate::metrics_cache::FamiliesCache;
 
 #[derive(Clone)]
 struct RouteState {
-    metrics_cache: MetricsCache,
+    families_cache: FamiliesCache,
 }
 
 async fn metrics_handler(State(state): State<RouteState>) -> impl IntoResponse {
-    let stream_body: pin::Pin<Box<dyn Stream<Item = Result<String, io::Error>> + Send>> =
-        Box::pin(stream! {
-            for (k, v) in state.metrics_cache.iter() {
-                yield Ok(format!("{k} {v}\n"));
+    let stream_body: pin::Pin<Box<dyn Stream<Item = Result<String, io::Error>> + Send>> = Box::pin(
+        stream! {
+            for (families_k, families_v) in state.families_cache.iter() {
+                yield Ok(families_v.descriptors);
+
+                let mut job_labels = String::new();
+                let _ = job_labels.write_fmt(format_args!("job={}", families_k.job));
+                for (label_k, label_v) in families_k.labels.iter() {
+                    let _ = job_labels.write_fmt(format_args!(",{}={}", label_k, label_v));
+                }
+
+                for (metrics_k, metric) in families_v.metrics_cache.iter() {
+                    let mut metric_labelled_name = String::with_capacity(job_labels.len() + metrics_k.name.len());
+                    let _ = metric_labelled_name.write_str(&metrics_k.name);
+                    let _ = metric_labelled_name.write_char('{');
+                    let _ = metric_labelled_name.write_str(&job_labels);
+                    for (name, value) in &metrics_k.labels {
+                        let _ = metric_labelled_name.write_fmt(format_args!(",{}={}", name, value));
+                    }
+                    let _ = metric_labelled_name.write_char('}');
+
+                    yield Ok(format!("{metric_labelled_name} {metric}\n"));
+                }
             }
-        });
+        },
+    );
 
     Response::builder()
         .status(StatusCode::OK)
@@ -42,9 +63,9 @@ async fn metrics_handler(State(state): State<RouteState>) -> impl IntoResponse {
 
 pub(crate) async fn task(
     metrics_http_addr: std::net::SocketAddr,
-    metrics_cache: MetricsCache,
+    families_cache: FamiliesCache,
 ) -> Result<(), io::Error> {
-    let state = RouteState { metrics_cache };
+    let state = RouteState { families_cache };
     let router = Router::new()
         .route("/metrics", get(metrics_handler))
         .with_state(state);

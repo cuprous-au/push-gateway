@@ -12,14 +12,16 @@ use axum::{
 };
 use futures::StreamExt;
 use log::info;
+use moka::policy::EvictionPolicy;
 use nom_openmetrics::parser::family;
 use serde::Deserialize;
 
-use crate::metrics_cache::{MetricsCache, MetricsKey};
+use crate::metrics_cache::{FamiliesCache, FamiliesKey, FamiliesValue, MetricsCache, MetricsKey};
 
 #[derive(Clone)]
 struct RouteState {
-    metrics_cache: MetricsCache,
+    families_cache: FamiliesCache,
+    max_metrics_per_family: u64,
 }
 
 async fn push_handler_with_job(
@@ -62,8 +64,8 @@ async fn push_handler_with_job_and_labels(
 
 async fn push_handler(
     state: RouteState,
-    _job: String,
-    _labels: Vec<(String, String)>,
+    job: String,
+    labels: Vec<(String, String)>,
     body: Body,
 ) -> StatusCode {
     let mut stream_body = body.into_data_stream();
@@ -71,6 +73,17 @@ async fn push_handler(
     const DEFAULT_METRICS_FAMILY_CAPACITY: usize = 1024;
     let mut buf = Vec::with_capacity(DEFAULT_METRICS_FAMILY_CAPACITY);
 
+    let family_key = FamiliesKey::new(job, labels);
+    let mut family_value = state
+        .families_cache
+        .get(&family_key)
+        .unwrap_or_else(|| FamiliesValue {
+            descriptors: String::new(),
+            metrics_cache: MetricsCache::builder()
+                .max_capacity(state.max_metrics_per_family)
+                .eviction_policy(EvictionPolicy::lru())
+                .build(),
+        });
     while let Some(Ok(bytes)) = stream_body.next().await {
         buf.extend_from_slice(&bytes);
 
@@ -80,11 +93,25 @@ async fn push_handler(
 
         match family(text) {
             Ok((remaining, metric_family)) => {
+                family_value.descriptors.clear();
+                for line in text.lines() {
+                    if line.starts_with('#') {
+                        family_value.descriptors.push_str(line);
+                        family_value.descriptors.push('\n');
+                    } else {
+                        break;
+                    }
+                }
+
                 for sample in metric_family.samples {
                     let metric_key =
                         MetricsKey::with_nom_name_and_labels(sample.name(), sample.labels());
-                    state.metrics_cache.insert(metric_key, sample.number());
+                    family_value
+                        .metrics_cache
+                        .insert(metric_key, sample.number());
                 }
+
+                family_value.metrics_cache.run_pending_tasks();
 
                 buf.drain(..buf.len() - remaining.len());
             }
@@ -97,14 +124,21 @@ async fn push_handler(
         }
     }
 
+    state.families_cache.insert(family_key, family_value);
+    state.families_cache.run_pending_tasks();
+
     StatusCode::OK
 }
 
 pub(crate) async fn task(
     push_http_path: PathBuf,
-    metrics_cache: MetricsCache,
+    families_cache: FamiliesCache,
+    max_metrics_per_family: u64,
 ) -> Result<(), io::Error> {
-    let state = RouteState { metrics_cache };
+    let state = RouteState {
+        families_cache,
+        max_metrics_per_family,
+    };
     let router = Router::new()
         .nest(
             "/metrics",

@@ -1,5 +1,3 @@
-use std::fmt::Write;
-
 use moka::sync::Cache;
 use nom_openmetrics::Label;
 
@@ -23,24 +21,26 @@ impl MetricsKey {
     }
 }
 
-impl std::fmt::Display for MetricsKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.name)?;
-        if !self.labels.is_empty() {
-            f.write_char('{')?;
-            let mut first = true;
-            for (name, value) in &self.labels {
-                if !first {
-                    f.write_char(',')?;
-                }
-                f.write_fmt(format_args!("{}={}", name, value))?;
-                first = false;
-            }
-            f.write_char('}')?;
-        }
-        Ok(())
+pub type MetricsValue = f64;
+pub type MetricsCache = Cache<MetricsKey, MetricsValue>;
+
+#[derive(Hash, PartialEq, Eq)]
+pub struct FamiliesKey {
+    pub job: String,
+    pub labels: Vec<(String, String)>,
+}
+
+impl FamiliesKey {
+    pub fn new(job: String, mut labels: Vec<(String, String)>) -> Self {
+        labels.sort_by(|a, b| a.0.cmp(&b.0));
+        Self { job, labels }
     }
 }
 
-pub type MetricsValue = f64;
-pub type MetricsCache = Cache<MetricsKey, MetricsValue>;
+#[derive(Clone)]
+pub struct FamiliesValue {
+    pub descriptors: String,
+    pub metrics_cache: MetricsCache,
+}
+
+pub type FamiliesCache = Cache<FamiliesKey, FamiliesValue>;

@@ -28,3 +28,11 @@ curl \
   --unix-socket /tmp/push-gateway.sock \
   http://localhost/metrics/job/1
 ```
+
+As a final step, you can observe the metrics that have been added:
+
+```
+curl \
+  -v \
+  http://localhost:9091/metrics
+```
