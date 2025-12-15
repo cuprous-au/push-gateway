@@ -25,8 +25,8 @@ struct RouteState {
 async fn metrics_handler(State(state): State<RouteState>) -> impl IntoResponse {
     let stream_body: pin::Pin<Box<dyn Stream<Item = Result<String, io::Error>> + Send>> =
         Box::pin(stream! {
-            for (_k, v) in state.metrics_cache.iter() {
-                yield Ok(v);
+            for (k, v) in state.metrics_cache.iter() {
+                yield Ok(format!("{k} {v}\n"));
             }
         });
 

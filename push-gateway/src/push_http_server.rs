@@ -15,11 +15,11 @@ use log::info;
 use nom_openmetrics::parser::family;
 use serde::Deserialize;
 
-use crate::metrics_cache::MetricsCache;
+use crate::metrics_cache::{MetricsCache, MetricsKey};
 
 #[derive(Clone)]
 struct RouteState {
-    _metrics_cache: MetricsCache,
+    metrics_cache: MetricsCache,
 }
 
 async fn push_handler_with_job(
@@ -61,7 +61,7 @@ async fn push_handler_with_job_and_labels(
 }
 
 async fn push_handler(
-    _state: RouteState,
+    state: RouteState,
     _job: String,
     _labels: Vec<(String, String)>,
     body: Body,
@@ -70,6 +70,7 @@ async fn push_handler(
 
     const DEFAULT_METRICS_FAMILY_CAPACITY: usize = 1024;
     let mut buf = Vec::with_capacity(DEFAULT_METRICS_FAMILY_CAPACITY);
+
     while let Some(Ok(bytes)) = stream_body.next().await {
         buf.extend_from_slice(&bytes);
 
@@ -78,8 +79,12 @@ async fn push_handler(
         };
 
         match family(text) {
-            Ok((remaining, _metric_family)) => {
-                // TODO something goes here with metric_family
+            Ok((remaining, metric_family)) => {
+                for sample in metric_family.samples {
+                    let metric_key =
+                        MetricsKey::with_nom_name_and_labels(sample.name(), sample.labels());
+                    state.metrics_cache.insert(metric_key, sample.number());
+                }
 
                 buf.drain(..buf.len() - remaining.len());
             }
@@ -99,9 +104,7 @@ pub(crate) async fn task(
     push_http_path: PathBuf,
     metrics_cache: MetricsCache,
 ) -> Result<(), io::Error> {
-    let state = RouteState {
-        _metrics_cache: metrics_cache,
-    };
+    let state = RouteState { metrics_cache };
     let router = Router::new()
         .nest(
             "/metrics",
