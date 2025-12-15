@@ -48,6 +48,8 @@ async fn metrics_handler(State(state): State<RouteState>) -> impl IntoResponse {
                     yield Ok(format!("{metric_labelled_name} {metric}\n"));
                 }
             }
+
+            yield Ok("# EOF\n".to_string());
         },
     );
 

@@ -14,7 +14,7 @@ mod metrics_cache;
 mod metrics_http_server;
 mod push_http_server;
 
-/// A push acceptor for caching the Prometheus metrics of local processes,
+/// A push acceptor for caching the Prometheus metrics of local processes
 #[derive(Parser, Debug)]
 #[clap(author, about, long_about = None, version=git_version!())]
 pub struct Args {

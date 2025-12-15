@@ -21,10 +21,17 @@ and can be considered a replacement to the Prometheus Push Gateway. The impact o
 processes wanting to push metrics must do so using a Unix Domain Socket instead of TCP. However, [`socat`](https://man.freebsd.org/cgi/man.cgi?query=socat&sektion=1&manpath=FreeBSD+6.0-RELEASE+and+Ports)
 can be used to forward TCP requests on to a Unix Domain Socket as a migratory step.
 
+node-exporter
+---
+
+A metrics exporter is also provided that illustrates how to push metrics and provide a minimal
+`node-exporter` implmentation.
+
 Building and running
 ---
 
 Please see the [push-gateway](push-gateway/README.md) package documentation.
+Also see the [node-exporter](node-exporter/README.md) documentation.
 
 Motivation
 ---

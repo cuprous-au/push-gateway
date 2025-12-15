@@ -1,0 +1,17 @@
+[package]
+name = "node-exporter"
+version.workspace = true
+edition.workspace = true
+license-file.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Exporter for machine metrics"
+
+[dependencies]
+clap = { workspace = true, features = ["derive", "env"] }
+env_logger.workspace = true
+git-version.workspace = true
+humantime.workspace = true
+log.workspace = true
+sysinfo.workspace = true
+tokio = { workspace = true, features = ["full"] }

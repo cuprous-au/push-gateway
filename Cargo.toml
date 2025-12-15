@@ -2,6 +2,7 @@
 resolver = "2"
 
 members = [
+    "node-exporter",
     "push-gateway"
 ]
 
@@ -25,6 +26,7 @@ moka = "0.12.11"
 nom = "8.0.0"
 nom-openmetrics = "0.2.0"
 serde = "1.0.228"
+sysinfo = "0.37.2"
 tokio = "1.48.0"
 tokio-stream = "0.1.17"
 tokio-util = "0.7.17"
