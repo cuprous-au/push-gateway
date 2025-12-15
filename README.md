@@ -14,7 +14,7 @@ The push-gateway is functionally comparable with the [Prometheus Push Gateway](h
 but designed for embedded environments like those found in edge computing. The HTTP commands and paths have been retained
 to ease any planned or future migration.
 
-The size of the cache is fixed to a command-line option. By default, the cache will not exceed 10KiB of memory, which enables around 100 labelled metrics to be stored. The resident size of the push-gateway is not expected to exceed 5MiB for an ARM 64 bit target.
+The size of the cache is fixed to a command-line option. By default, the cache will not exceed 10KiB of memory, which enables around 100 labelled metrics to be stored. The resident size of the push-gateway is not expected to exceed 3MiB for an ARM 64 bit target.
 
 With the embedded target in mind, you can also be sure that this push-gateway works extremely well anywhere
 and can be considered a replacement to the Prometheus Push Gateway. The impact of doing this means that the
@@ -40,13 +40,13 @@ The Prometheus Push Gateway also provides its own metrics which we will not leve
 
 [The Prometheus community also appears to be resistant](https://github.com/prometheus/pushgateway/issues/19#issuecomment-225566114)
 to providing a TTL on metrics; that it leads to some sort of anti-pattern. We do not agree. Metrics
-within a process can ephemeral when labelled. For example, if you had a label representing
-some client connection based on their source IP address then you would not expect the metric to survive
+within a process can be ephemeral when labelled. For example, if you had a label representing
+some client connection based on some source identifier then you would not expect the metric to survive
 beyond the connection being dropped. Otherwise, system memory may well continue growing. Although,
 apparently, [being explicit about freeing unused metrics appears to be a thing](https://github.com/prometheus/client_rust/issues/197#issuecomment-3635523296)!
 
 Finally, Unix Domain Sockets are superior in terms of performance when conveying data between
-processes. The Prometheus Push Gateway provides an TCP endpoint for pushing, which is overkill for
+processes. The Prometheus Push Gateway provides a TCP endpoint for pushing, which is overkill for
 inter-process communication. And then there's the garbage collection associated with Go...
 
 In summary, we need a process to work in the smallest amount of memory while consuming the
