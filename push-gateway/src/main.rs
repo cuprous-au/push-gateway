@@ -19,11 +19,11 @@ mod push_http_server;
 #[clap(author, about, long_about = None, version=git_version!())]
 pub struct Args {
     /// The total number of families.
-    #[clap(env, long, default_value_t = 1)]
+    #[clap(env, long, default_value_t = 2)]
     max_families: u64,
 
     /// The total number of metrics to retain per family.
-    #[clap(env, long, default_value_t = 100)]
+    #[clap(env, long, default_value_t = 50)]
     max_metrics_per_family: u64,
 
     /// A socket address for serving our families of metrics. Delivers

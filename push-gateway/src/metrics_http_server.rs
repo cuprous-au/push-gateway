@@ -30,9 +30,9 @@ async fn metrics_handler(State(state): State<RouteState>) -> impl IntoResponse {
                 yield Ok(families_v.descriptors);
 
                 let mut job_labels = String::new();
-                let _ = job_labels.write_fmt(format_args!("job={}", families_k.job));
+                let _ = job_labels.write_fmt(format_args!("job=\"{}\"", families_k.job));
                 for (label_k, label_v) in families_k.labels.iter() {
-                    let _ = job_labels.write_fmt(format_args!(",{}={}", label_k, label_v));
+                    let _ = job_labels.write_fmt(format_args!(",{}=\"{}\"", label_k, label_v));
                 }
 
                 for (metrics_k, metric) in families_v.metrics_cache.iter() {
@@ -41,7 +41,7 @@ async fn metrics_handler(State(state): State<RouteState>) -> impl IntoResponse {
                     let _ = metric_labelled_name.write_char('{');
                     let _ = metric_labelled_name.write_str(&job_labels);
                     for (name, value) in &metrics_k.labels {
-                        let _ = metric_labelled_name.write_fmt(format_args!(",{}={}", name, value));
+                        let _ = metric_labelled_name.write_fmt(format_args!(",{}=\"{}\"", name, value));
                     }
                     let _ = metric_labelled_name.write_char('}');
 

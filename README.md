@@ -14,7 +14,7 @@ The push-gateway is functionally comparable with the [Prometheus Push Gateway](h
 but designed for embedded environments like those found in edge computing. The HTTP commands and paths have been retained
 to ease any planned or future migration.
 
-The size of the cache is fixed to a command-line option. By default, the cache will not exceed 10KiB of memory, which enables around 100 labelled metrics to be stored. The resident size of the push-gateway is not expected to exceed 3MiB for an ARM 64 bit target.
+The size of the cache is fixed to a command-line option. By default, the cache will not exceed 10KiB of memory, which enables around 100 labelled metrics to be stored across 2 jobs. The resident size of the push-gateway is not expected to exceed 3MiB for an ARM 64 bit target.
 
 With the embedded target in mind, you can also be sure that this push-gateway works extremely well anywhere
 and can be considered a replacement to the Prometheus Push Gateway. The impact of doing this means that the
@@ -24,7 +24,7 @@ can be used to forward TCP requests on to a Unix Domain Socket as a migratory st
 node-exporter
 ---
 
-A metrics exporter is also provided that illustrates how to push metrics and provide a minimal
+A metrics exporter is also provided that illustrates how to push metrics and provide a minimal, but useful
 `node-exporter` implmentation.
 
 Building and running
