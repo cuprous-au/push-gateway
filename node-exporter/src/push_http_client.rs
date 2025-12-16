@@ -7,7 +7,7 @@ use std::{
 use git_version::git_version;
 use log::error;
 use std::fmt::Write;
-use sysinfo::{Components, Disks, System};
+use sysinfo::{Components, Disks, Networks, System};
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::UnixStream;
@@ -17,6 +17,7 @@ async fn push_metrics(
     sys: &System,
     disks: &Disks,
     components: &Components,
+    networks: &Networks,
 ) -> io::Result<()> {
     let mut metrics = String::new();
     let _ = metrics.write_str(
@@ -40,6 +41,10 @@ async fn push_metrics(
 # TYPE node_disk_available_space gauge
 # HELP node_temperature The temperature of the component (in celsius)
 # TYPE node_temperature gauge
+# HELP node_total_packets_received The total number of incoming packets
+# TYPE node_total_packets_received gauge
+# HELP node_total_packets_transmitted The total number of outgoing packets
+# TYPE node_total_packets_transmitted gauge
 ",
     );
 
@@ -93,6 +98,21 @@ async fn push_metrics(
         }
     }
 
+    for (interface, network) in networks {
+        if interface.starts_with("en") || interface.starts_with("eth") {
+            let _ = metrics.write_fmt(format_args!(
+                "node_total_packets_received{{interface=\"{}\"}} {}\n",
+                interface,
+                network.total_packets_received()
+            ));
+            let _ = metrics.write_fmt(format_args!(
+                "node_total_packets_transmitted{{interface=\"{}\"}} {}\n",
+                interface,
+                network.total_packets_transmitted()
+            ));
+        }
+    }
+
     let _ = metrics.write_str("# EOF\n");
 
     let request = format!(
@@ -132,14 +152,16 @@ pub async fn task(metrics_interval: Duration, push_http_path: PathBuf) -> io::Re
     let mut sys = System::new();
     let mut disks = Disks::new();
     let mut components = Components::new();
+    let mut networks = Networks::new();
 
     loop {
         sys.refresh_cpu_usage();
         sys.refresh_memory();
         disks.refresh(false);
         components.refresh(false);
+        networks.refresh(false);
 
-        if let Err(e) = push_metrics(&push_http_path, &sys, &disks, &components).await {
+        if let Err(e) = push_metrics(&push_http_path, &sys, &disks, &components, &networks).await {
             error!("Problem writing metrics: {e}");
         }
 
