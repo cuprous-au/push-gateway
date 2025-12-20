@@ -46,14 +46,12 @@ too much for an embedded target (we have deployed to edge compute with 128MiB in
 The Prometheus Push Gateway also provides its own metrics which we will not leverage.
 
 [The Prometheus community also appears to be resistant](https://github.com/prometheus/pushgateway/issues/19#issuecomment-225566114)
-to providing a TTL on metrics; that it leads to some sort of anti-pattern. We do not agree. Metrics
-within a process can be ephemeral when labelled. For example, if you had a label representing
-some client connection based on some source identifier then you would not expect the metric to survive
-beyond the connection being dropped. Otherwise, system memory may well continue growing. Although,
-apparently, [being explicit about freeing unused metrics appears to be a thing](https://github.com/prometheus/client_rust/issues/197#issuecomment-3635523296)!
+to providing a TTL on metrics; that it leads to some sort of anti-pattern. We do not agree. Labelled metrics
+within a process can come and go, particularly given a new release of software that no longer has the old metrics.
+Otherwise, system memory may well continue growing.
 
 Finally, Unix Domain Sockets are superior in terms of performance when conveying data between
-processes. The Prometheus Push Gateway provides a TCP endpoint for pushing, which is overkill for
+processes. The Prometheus Push Gateway provides a TCP endpoint for pushing, which we see as overkill for
 inter-process communication. And then there's the garbage collection associated with Go...
 
 In summary, we need a process to work in the smallest amount of memory while consuming the
