@@ -116,14 +116,14 @@ async fn push_metrics(
     let _ = metrics.write_str("# EOF\n");
 
     let request = format!(
-        "POST /metrics/job/node HTTP/1.1
-Host: localhost
-User-Agent: node-exporter/{}
-Accept: */*
-Content-Length: {}
-Content-Type: application/openmetrics-text; version=1.0.0; charset=utf-8
-Connection: close
-
+        "POST /metrics/job/node HTTP/1.1\r\n\
+Host: localhost\r\n\
+User-Agent: node-exporter/{}\r\n\
+Accept: */*\r\n\
+Content-Length: {}\r\n\
+Content-Type: application/openmetrics-text; version=1.0.0; charset=utf-8\r\n\
+Connection: close\r\n\
+\r\n\
 {}",
         git_version!(),
         metrics.len(),
