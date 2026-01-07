@@ -9,6 +9,9 @@ cat > /tmp/data << EOF
 # TYPE cloud_edge_wg_secs_since_last_handshake gauge
 cloud_edge_wg_secs_since_last_handshake{client_pub_key="h/9Aa9yzJOlbbWWsb18xRPqZh7QRkpgqmYnz8Cy="} 1765685748
 cloud_edge_wg_secs_since_last_handshake{client_pub_key="s7iFDhrtuudO7XNJP7eM/J6KkQrv4tg8/1Y="} 17
+# HELP another Another metric
+# TYPE another gauge
+another 1
 # EOF
 EOF
 ```
