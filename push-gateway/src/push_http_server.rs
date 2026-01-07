@@ -13,7 +13,7 @@ use axum::{
 use futures::StreamExt;
 use log::info;
 use moka::policy::EvictionPolicy;
-use nom_openmetrics::parser::family;
+use nom_openmetrics::{Family, parser::family};
 use serde::Deserialize;
 
 use crate::metrics_cache::{FamiliesCache, FamiliesKey, FamiliesValue, MetricsCache, MetricsKey};
@@ -84,7 +84,7 @@ async fn push_handler(
                 .eviction_policy(EvictionPolicy::lru())
                 .build(),
         });
-    while let Some(Ok(bytes)) = stream_body.next().await {
+    'outer: while let Some(Ok(bytes)) = stream_body.next().await {
         buf.extend_from_slice(&bytes);
 
         let Ok(text) = std::str::from_utf8(&buf) else {
@@ -92,26 +92,24 @@ async fn push_handler(
         };
 
         match family(text) {
-            Ok((remaining, metric_family)) => {
-                family_value.descriptors.clear();
-                for line in text.lines() {
-                    if line.starts_with('#') {
-                        family_value.descriptors.push_str(line);
-                        family_value.descriptors.push('\n');
-                    } else {
-                        break;
+            Ok((mut remaining, metric_family)) => {
+                cache_metric_family(&mut family_value, text, metric_family);
+
+                loop {
+                    match family(remaining) {
+                        Ok((next_remaining, metric_family)) => {
+                            cache_metric_family(&mut family_value, remaining, metric_family);
+
+                            remaining = next_remaining;
+                        }
+                        Err(nom::Err::Incomplete(_)) => {
+                            break;
+                        }
+                        Err(_e) => {
+                            break 'outer;
+                        }
                     }
                 }
-
-                for sample in metric_family.samples {
-                    let metric_key =
-                        MetricsKey::with_nom_name_and_labels(sample.name(), sample.labels());
-                    family_value
-                        .metrics_cache
-                        .insert(metric_key, sample.number());
-                }
-
-                family_value.metrics_cache.run_pending_tasks();
 
                 buf.drain(..buf.len() - remaining.len());
             }
@@ -128,6 +126,27 @@ async fn push_handler(
     state.families_cache.run_pending_tasks();
 
     StatusCode::OK
+}
+
+fn cache_metric_family(family_value: &mut FamiliesValue, text: &str, metric_family: Family) {
+    family_value.descriptors.clear();
+    for line in text.lines() {
+        if line.starts_with('#') {
+            family_value.descriptors.push_str(line);
+            family_value.descriptors.push('\n');
+        } else {
+            break;
+        }
+    }
+
+    for sample in metric_family.samples {
+        let metric_key = MetricsKey::with_nom_name_and_labels(sample.name(), sample.labels());
+        family_value
+            .metrics_cache
+            .insert(metric_key, sample.number());
+    }
+
+    family_value.metrics_cache.run_pending_tasks();
 }
 
 pub(crate) async fn task(
