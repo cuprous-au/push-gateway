@@ -19,8 +19,8 @@ async fn push_metrics(
     components: &Components,
     networks: &Networks,
 ) -> io::Result<()> {
-    let mut metrics = String::new();
-    let _ = metrics.write_str(
+    let mut body = String::new();
+    let _ = body.write_str(
         "# HELP node_global_cpu_usage Global CPUs usage (aka the addition of all the CPUs)
 # TYPE node_global_cpu_usage gauge
 # HELP node_physical_core_count The combined the physical core count of all the CPUs
@@ -48,26 +48,26 @@ async fn push_metrics(
 ",
     );
 
-    let _ = metrics.write_fmt(format_args!(
+    let _ = body.write_fmt(format_args!(
         "node_global_cpu_usage {}\n",
         sys.global_cpu_usage()
     ));
 
-    let _ = metrics.write_fmt(format_args!(
+    let _ = body.write_fmt(format_args!(
         "node_physical_core_count {}\n",
         System::physical_core_count().unwrap_or_default()
     ));
 
     let load_average = System::load_average();
-    let _ = metrics.write_fmt(format_args!("node_load_average1 {}\n", load_average.one));
-    let _ = metrics.write_fmt(format_args!("node_load_average5 {}\n", load_average.five));
-    let _ = metrics.write_fmt(format_args!(
+    let _ = body.write_fmt(format_args!("node_load_average1 {}\n", load_average.one));
+    let _ = body.write_fmt(format_args!("node_load_average5 {}\n", load_average.five));
+    let _ = body.write_fmt(format_args!(
         "node_load_average15 {}\n",
         load_average.fifteen
     ));
 
-    let _ = metrics.write_fmt(format_args!("node_total_memory {}\n", sys.total_memory()));
-    let _ = metrics.write_fmt(format_args!(
+    let _ = body.write_fmt(format_args!("node_total_memory {}\n", sys.total_memory()));
+    let _ = body.write_fmt(format_args!(
         "node_available_memory {}\n",
         sys.available_memory()
     ));
@@ -75,12 +75,12 @@ async fn push_metrics(
     for disk in disks {
         if !disk.is_read_only() && !disk.is_removable() {
             let name = disk.name().to_string_lossy();
-            let _ = metrics.write_fmt(format_args!(
+            let _ = body.write_fmt(format_args!(
                 "node_disk_total_space{{name=\"{}\"}} {}\n",
                 name,
                 disk.total_space()
             ));
-            let _ = metrics.write_fmt(format_args!(
+            let _ = body.write_fmt(format_args!(
                 "node_disk_available_space{{name=\"{}\"}} {}\n",
                 name,
                 disk.available_space()
@@ -90,7 +90,7 @@ async fn push_metrics(
 
     for component in components {
         if let Some(temperature) = component.temperature() {
-            let _ = metrics.write_fmt(format_args!(
+            let _ = body.write_fmt(format_args!(
                 "node_temperature{{id=\"{}\"}} {}\n",
                 component.id().unwrap_or("unavailable"),
                 temperature
@@ -100,12 +100,12 @@ async fn push_metrics(
 
     for (interface, network) in networks {
         if interface.starts_with("en") || interface.starts_with("eth") {
-            let _ = metrics.write_fmt(format_args!(
+            let _ = body.write_fmt(format_args!(
                 "node_total_packets_received{{interface=\"{}\"}} {}\n",
                 interface,
                 network.total_packets_received()
             ));
-            let _ = metrics.write_fmt(format_args!(
+            let _ = body.write_fmt(format_args!(
                 "node_total_packets_transmitted{{interface=\"{}\"}} {}\n",
                 interface,
                 network.total_packets_transmitted()
@@ -113,9 +113,9 @@ async fn push_metrics(
         }
     }
 
-    let _ = metrics.write_str("# EOF\n");
+    let _ = body.write_str("# EOF\n");
 
-    let request = format!(
+    let header = format!(
         "POST /metrics/job/node HTTP/1.1\r\n\
 Host: localhost\r\n\
 User-Agent: node-exporter/{}\r\n\
@@ -123,15 +123,14 @@ Accept: */*\r\n\
 Content-Length: {}\r\n\
 Content-Type: application/openmetrics-text; version=1.0.0; charset=utf-8\r\n\
 Connection: close\r\n\
-\r\n\
-{}",
+\r\n",
         git_version!(),
-        metrics.len(),
-        metrics
+        body.len()
     );
 
     let mut stream = UnixStream::connect(push_http_path).await?;
-    stream.write_all(request.as_bytes()).await?;
+    stream.write_all(header.as_bytes()).await?;
+    stream.write_all(body.as_bytes()).await?;
 
     let mut tmp = [0u8; 100];
     let timeout = Duration::from_secs(5);
