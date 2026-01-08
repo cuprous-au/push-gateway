@@ -84,6 +84,8 @@ async fn push_handler(
                 .eviction_policy(EvictionPolicy::lru())
                 .build(),
         });
+    family_value.descriptors.clear();
+
     'outer: while let Some(Ok(bytes)) = stream_body.next().await {
         buf.extend_from_slice(&bytes);
 
@@ -129,7 +131,6 @@ async fn push_handler(
 }
 
 fn cache_metric_family(family_value: &mut FamiliesValue, text: &str, metric_family: Family) {
-    family_value.descriptors.clear();
     for line in text.lines() {
         if line.starts_with('#') {
             family_value.descriptors.push_str(line);
