@@ -170,7 +170,6 @@ pub(crate) async fn task(
             ),
         )
         .with_state(state);
-    let _ = std::fs::remove_file(&push_http_path);
     let listener = tokio::net::UnixListener::bind(&push_http_path)?;
 
     info!(
