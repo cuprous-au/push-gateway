@@ -19,6 +19,7 @@ EOF
 ...then run the program (assuming workspace dir):
 
 ```
+rm /tmp/push-gateway.sock
 RUST_LOG=info cargo run --bin push-gateway -- --push-http-path=/tmp/push-gateway.sock
 ```
 
